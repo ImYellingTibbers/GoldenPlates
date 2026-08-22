@@ -372,14 +372,6 @@
   }
   .entry-meta b { color: var(--ink-faint); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 6px; }
 
-  .source-link {
-    color: var(--accent);
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    transition: text-decoration-color 0.12s ease;
-  }
-  .source-link:hover, .source-link:focus-visible { text-decoration-color: var(--accent); }
-
   .read-full {
     display: inline-flex;
     align-items: center;
@@ -601,16 +593,11 @@
     var det = document.createElement('details');
     det.className = 'entry';
 
-    var sourceCite = esc(section) + (sectionRef ? ' — ' + esc(sectionRef) : '');
     var metaBits = [];
     if (category) metaBits.push('<div><b>Topic</b>' + esc(category) + '</div>');
     if (condition) metaBits.push('<div><b>Condition</b>' + esc(condition) + '</div>');
     if (notes) metaBits.push('<div><b>Notes</b>' + esc(notes) + '</div>');
-    metaBits.push('<div><b>Source</b>' +
-      (sourceUrl
-        ? '<a class="source-link" href="' + esc(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + sourceCite + '</a>'
-        : sourceCite) +
-      '</div>');
+    metaBits.push('<div><b>Source</b>' + esc(section) + (sectionRef ? ' — ' + esc(sectionRef) : '') + '</div>');
 
     det.innerHTML =
       '<summary>' +
