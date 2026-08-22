@@ -372,24 +372,13 @@
   }
   .entry-meta b { color: var(--ink-faint); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 6px; }
 
-  .read-full {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
+  .source-link {
     color: var(--accent);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 5px 12px;
-    margin: 0 0 12px;
-    text-decoration: none;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.12s ease;
   }
-  .read-full:hover { border-color: var(--accent); }
-  .read-full:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .ext-icon { font-size: 11px; }
+  .source-link:hover, .source-link:focus-visible { text-decoration-color: var(--accent); }
 
   [hidden] { display: none !important; }
 
@@ -534,14 +523,6 @@
     return d.innerHTML;
   }
 
-  function sourceLabel(url) {
-    if (!url) return '';
-    if (url.indexOf('wikisource.org') !== -1) return 'Read the full sermon on Wikisource';
-    if (url.indexOf('churchofjesuschrist.org') !== -1) return 'Read the full chapter on churchofjesuschrist.org';
-    if (url.indexOf('archive.org') !== -1) return 'View the full conference report on archive.org';
-    return 'Read the original source';
-  }
-
   function shortDate(given) {
     if (!given) return '';
     var m = given.match(/[A-Z][a-z]+ \d{1,2}, \d{4}/);
@@ -593,11 +574,16 @@
     var det = document.createElement('details');
     det.className = 'entry';
 
+    var sourceCite = esc(section) + (sectionRef ? ' — ' + esc(sectionRef) : '');
     var metaBits = [];
     if (category) metaBits.push('<div><b>Topic</b>' + esc(category) + '</div>');
     if (condition) metaBits.push('<div><b>Condition</b>' + esc(condition) + '</div>');
     if (notes) metaBits.push('<div><b>Notes</b>' + esc(notes) + '</div>');
-    metaBits.push('<div><b>Source</b>' + esc(section) + (sectionRef ? ' — ' + esc(sectionRef) : '') + '</div>');
+    metaBits.push('<div><b>Source</b>' +
+      (sourceUrl
+        ? '<a class="source-link" href="' + esc(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + sourceCite + '</a>'
+        : sourceCite) +
+      '</div>');
 
     det.innerHTML =
       '<summary>' +
@@ -608,9 +594,6 @@
       '</summary>' +
       '<div class="entry-body">' +
         (quote ? '<p class="entry-quote">' + esc(quote) + '</p>' : '') +
-        (sourceUrl
-          ? '<a class="read-full" href="' + esc(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(sourceLabel(sourceUrl)) + '<span class="ext-icon" aria-hidden="true">↗</span></a>'
-          : '') +
         '<div class="entry-meta">' +
           (given ? '<div><b>Given</b>' + esc(given) + '</div>' : '') +
           metaBits.join('') +
