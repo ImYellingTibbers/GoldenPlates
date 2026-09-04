@@ -290,17 +290,12 @@
     color: var(--ink-faint);
   }
 
-  .prophet-badge {
+  .entry-prophet {
     flex: none;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-family: var(--font-body);
+    font-size: 12px;
     color: var(--ink-dim);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 5px;
+    white-space: nowrap;
   }
 
   details.entry {
@@ -430,8 +425,11 @@
       padding: 12px 8px;
       row-gap: 4px;
     }
-    .entry-given { order: 3; margin-left: 20px; font-size: 10.5px; }
-    .entry-title { order: 4; flex-basis: 100%; margin-left: 20px; font-size: 14.5px; }
+    .disclosure { order: 1; }
+    .pill { order: 2; }
+    .entry-prophet { order: 3; }
+    .entry-given { order: 4; font-size: 10.5px; }
+    .entry-title { order: 5; flex-basis: 100%; margin-left: 20px; font-size: 14.5px; }
     .entry-body { padding: 2px 8px 18px 20px; }
     .entry-quote { padding-left: 10px; }
   }
@@ -495,7 +493,7 @@
   <main class="main">
     <div class="intro">
       <h1>How to read this</h1>
-      <p>Organized like a topical guide: every commandment and promise from every prophet catalogued so far, grouped under the subject it's actually about rather than the sermon it happened to come from. An entry that touches more than one subject — say, a father's duty to pray with his family — appears under each one, the same way a topical guide cross-references a single passage under several headings.</p>
+      <p>Every commandment and promise from every prophet catalogued so far, grouped by subject rather than by the sermon it happened to come from. Each entry appears once, under its single best-fit subject.</p>
       <p>Click any entry to read the full quote, its date and place, and where it was originally given.</p>
       <div class="legend">
         <span class="legend-item"><span class="swatch" style="background:var(--cmd)"></span>Commandment — a directive to the Saints</span>
@@ -516,32 +514,6 @@
   var ENTRIES = JSON.parse(document.getElementById('entries-data').textContent);
   var PROPHETS = JSON.parse(document.getElementById('prophets-data').textContent);
   // row: [prophetIdx, section, sectionRef, title, type, given, quote, category, condition, notes, sourceUrl, topics]
-
-  function abbreviate(name) {
-    var words = name.split(' ');
-    return words.map(function (w, i) {
-      if (i === 0 || i === words.length - 1) return w[0];
-      // middle word: an already-abbreviated initial ("F.", "O.") contributes
-      // just its one letter; a spelled-out middle name contributes 2 letters,
-      // so "Joseph F. Smith" (JFS) doesn't collide with "Joseph Fielding Smith" (JFiS).
-      return w.slice(-1) === '.' ? w[0] : w.slice(0, 2);
-    }).join('');
-  }
-  var PROPHET_ABBR = PROPHETS.map(function (p) { return abbreviate(p.name); });
-  // Guard against any future collision (e.g. a 17th-prophet edge case this
-  // heuristic doesn't anticipate) by disambiguating with a trailing digit
-  // rather than silently showing two prophets under one badge.
-  var seenAbbr = {};
-  PROPHET_ABBR.forEach(function (a, i) {
-    if (seenAbbr[a] !== undefined) {
-      var n = 2;
-      while (seenAbbr[a + n] !== undefined) n++;
-      PROPHET_ABBR[i] = a + n;
-      seenAbbr[a + n] = i;
-    } else {
-      seenAbbr[a] = i;
-    }
-  });
 
   function classify(type) {
     var t = type.toLowerCase();
@@ -604,10 +576,11 @@
     return 'topic-' + s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
 
-  // ---------- Group entries by topic ----------
+  // ---------- Group entries by topic (primary topic only — no cross-referencing) ----------
   var topicSet = {};
   ENTRIES.forEach(function (r) {
-    (r[11] || []).forEach(function (t) { topicSet[t] = (topicSet[t] || 0) + 1; });
+    var primary = (r[11] || [])[0];
+    if (primary) topicSet[primary] = (topicSet[primary] || 0) + 1;
   });
   var TOPICS = Object.keys(topicSet).sort();
 
@@ -642,10 +615,11 @@
 
     ENTRIES.forEach(function (r) {
       var topics = r[11] || [];
-      if (topics.indexOf(topicName) === -1) return;
+      if (topics[0] !== topicName) return;
 
       var pIdx = r[0], section = r[1], sectionRef = r[2], title = r[3], type = r[4],
-          given = r[5], quote = r[6], category = r[7], condition = r[8], notes = r[9], sourceUrl = r[10];
+          given = r[5], quote = r[6], sourceUrl = r[10];
+      var prophetName = PROPHETS[pIdx].name;
 
       var cls = classify(type);
       var det = document.createElement('details');
@@ -653,11 +627,7 @@
 
       var sourceCite = esc(section) + (sectionRef ? ' — ' + esc(sectionRef) : '');
       var metaBits = [];
-      metaBits.push('<div><b>Prophet</b>' + esc(PROPHETS[pIdx].name) + '</div>');
-      if (topics.length > 1) metaBits.push('<div><b>Also under</b>' + topics.filter(function (t) { return t !== topicName; }).map(esc).join(', ') + '</div>');
-      if (category) metaBits.push('<div><b>Original tag</b>' + esc(category) + '</div>');
-      if (condition) metaBits.push('<div><b>Condition</b>' + esc(condition) + '</div>');
-      if (notes) metaBits.push('<div><b>Notes</b>' + esc(notes) + '</div>');
+      if (given) metaBits.push('<div><b>Given</b>' + esc(given) + '</div>');
       metaBits.push('<div><b>Source</b>' +
         (sourceUrl
           ? '<a class="source-link" href="' + esc(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + sourceCite + '</a>'
@@ -667,15 +637,14 @@
       det.innerHTML =
         '<summary>' +
           '<span class="disclosure">&#9656;</span>' +
-          '<span class="pill ' + cls + '">' + esc(type) + '</span>' +
-          '<span class="prophet-badge" title="' + esc(PROPHETS[pIdx].name) + '">' + esc(PROPHET_ABBR[pIdx]) + '</span>' +
           '<span class="entry-title">' + esc(title) + '</span>' +
+          '<span class="pill ' + cls + '">' + esc(type) + '</span>' +
+          '<span class="entry-prophet">' + esc(prophetName) + '</span>' +
           '<span class="entry-given">' + esc(shortDate(given)) + '</span>' +
         '</summary>' +
         '<div class="entry-body">' +
           (quote ? '<p class="entry-quote">' + esc(quote) + '</p>' : '') +
           '<div class="entry-meta">' +
-            (given ? '<div><b>Given</b>' + esc(given) + '</div>' : '') +
             metaBits.join('') +
           '</div>' +
         '</div>';
@@ -685,7 +654,7 @@
       entryEls.push({
         el: det,
         topicEl: topicBlock,
-        searchText: (title + ' ' + quote + ' ' + category + ' ' + topics.join(' ')).toLowerCase(),
+        searchText: (title + ' ' + quote + ' ' + prophetName + ' ' + topics.join(' ')).toLowerCase(),
         prophetIdx: pIdx,
         cls: cls,
       });
